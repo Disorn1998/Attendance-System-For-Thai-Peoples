@@ -32,7 +32,11 @@ export default function WifiWhitelistPage() {
     e.preventDefault();
     try {
       setIsSubmitting(true);
-      await adminService.createWifi(formData);
+      const payload = {
+        ipAddress: formData.ipAddress.trim(),
+        description: formData.description.trim(),
+      };
+      await adminService.createWifi(payload);
       toast.success('เพิ่ม IP สำเร็จ');
       setIsModalOpen(false);
       setFormData({ ipAddress: '', description: '' });

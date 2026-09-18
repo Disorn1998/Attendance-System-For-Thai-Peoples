@@ -39,6 +39,8 @@ export const getEmployeesService = async ({ page, limit, search, departmentId, i
       role: true,
       position: true,
       isActive: true,
+      departmentId: true,
+      workShiftId: true,
       department: { select: { id: true, name: true } },
       workShift: { select: { id: true, name: true, startTime: true, endTime: true } },
       createdAt: true,

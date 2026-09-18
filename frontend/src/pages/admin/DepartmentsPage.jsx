@@ -12,7 +12,7 @@ export default function DepartmentsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({ name: '', code: '', description: '' });
+  const [formData, setFormData] = useState({ name: '' });
 
   const fetchDepartments = async () => {
     try {
@@ -33,10 +33,10 @@ export default function DepartmentsPage() {
   const handleOpenModal = (dept = null) => {
     if (dept) {
       setEditingDept(dept);
-      setFormData({ name: dept.name, code: dept.code, description: dept.description || '' });
+      setFormData({ name: dept.name });
     } else {
       setEditingDept(null);
-      setFormData({ name: '', code: '', description: '' });
+      setFormData({ name: '' });
     }
     setIsModalOpen(true);
   };
@@ -45,11 +45,12 @@ export default function DepartmentsPage() {
     e.preventDefault();
     try {
       setIsSubmitting(true);
+      const payload = { name: formData.name.trim() };
       if (editingDept) {
-        await adminService.updateDepartment(editingDept.id, formData);
+        await adminService.updateDepartment(editingDept.id, payload);
         toast.success('อัปเดตแผนกสำเร็จ');
       } else {
-        await adminService.createDepartment(formData);
+        await adminService.createDepartment(payload);
         toast.success('เพิ่มแผนกสำเร็จ');
       }
       setIsModalOpen(false);
@@ -92,9 +93,8 @@ export default function DepartmentsPage() {
           <table className="ui-table min-w-[700px]">
             <thead>
               <tr>
-                <th>รหัสแผนก</th>
                 <th>ชื่อแผนก</th>
-                <th>รายละเอียด / หน้าที่</th>
+                <th>จำนวนบุคลากร</th>
                 <th>วันที่สร้าง</th>
                 <th className="text-right">จัดการ</th>
               </tr>
@@ -102,7 +102,7 @@ export default function DepartmentsPage() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan="5" className="py-14 text-center text-slate-400 text-sm">
+                  <td colSpan="4" className="py-14 text-center text-slate-400 text-sm">
                     <div className="flex items-center justify-center gap-2.5">
                       <svg className="animate-spin w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -114,7 +114,7 @@ export default function DepartmentsPage() {
                 </tr>
               ) : departments.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="py-14 text-center text-slate-400 text-sm">
+                  <td colSpan="4" className="py-14 text-center text-slate-400 text-sm">
                     ยังไม่มีข้อมูลแผนกงานในระบบ
                   </td>
                 </tr>
@@ -122,12 +122,18 @@ export default function DepartmentsPage() {
                 departments.map((dept) => (
                   <tr key={dept.id} className="transition-colors">
                     <td>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center font-bold text-xs">
+                          🏢
+                        </div>
+                        <span className="font-bold text-slate-900 text-sm">{dept.name}</span>
+                      </div>
+                    </td>
+                    <td>
                       <span className="font-mono font-bold text-primary-700 bg-primary-50 px-3 py-1 rounded-xl text-xs border border-primary-200/80 shadow-2xs">
-                        {dept.code}
+                        {dept._count?.employees ?? 0} คน
                       </span>
                     </td>
-                    <td className="font-bold text-slate-900 text-sm">{dept.name}</td>
-                    <td className="text-slate-500 max-w-sm text-sm truncate">{dept.description || '-'}</td>
                     <td className="text-slate-400 text-xs font-medium">{dept.createdAt ? formatDateLong(dept.createdAt) : '-'}</td>
                     <td className="text-right">
                       <div className="inline-flex items-center gap-1.5">
@@ -171,40 +177,15 @@ export default function DepartmentsPage() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4 text-sm">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  รหัสแผนก <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="เช่น IT, HR, MKT"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  className="ui-input w-full font-mono uppercase"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   ชื่อแผนก <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="เช่น เทคโนโลยีสารสนเทศ"
+                  placeholder="เช่น ฝ่ายเทคโนโลยีสารสนเทศ, ทรัพยากรบุคคล, การตลาด"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="ui-input w-full"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">รายละเอียดเพิ่มเติม</label>
-                <textarea
-                  rows="3"
-                  placeholder="คำอธิบายหน้าที่หรือขอบเขตงาน..."
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-3 text-sm border border-slate-300 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-500/15 outline-none resize-none transition-all shadow-2xs"
                 />
               </div>
 

@@ -48,6 +48,8 @@ export const authenticateJWT = async (req, res, next) => {
         fullName: true,
         departmentId: true,
         workShiftId: true,
+        department: { select: { id: true, name: true } },
+        workShift: { select: { id: true, name: true, startTime: true, endTime: true, lateAfterMinutes: true, isNightShift: true } },
       },
     });
 

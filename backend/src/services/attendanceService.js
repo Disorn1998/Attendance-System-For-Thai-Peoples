@@ -6,13 +6,26 @@ import { AppError } from '../middlewares/errorHandler.js';
 import { logAction } from './auditService.js';
 import { getWorkDate, nowBangkok, calculateWorkingHours, combineDateTime } from '../utils/dates.js';
 
+const ensureWorkShift = async (employeeId, workShift) => {
+  if (workShift?.startTime) return workShift;
+  const emp = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    include: { workShift: true },
+  });
+  if (!emp?.workShift) {
+    throw new AppError('ไม่พบข้อมูลกะเวลาการทำงานของพนักงาน', 400);
+  }
+  return emp.workShift;
+};
+
 /**
  * Perform check-in
  * @param {object} employee 
  * @param {string} ipAddress 
  */
 export const checkInService = async (employee, ipAddress) => {
-  const { id: employeeId, workShift } = employee;
+  const employeeId = employee.id;
+  const workShift = await ensureWorkShift(employeeId, employee.workShift);
   
   const now = nowBangkok();
   // Determine logical work date (handles cross-midnight night shift)
@@ -92,7 +105,8 @@ export const checkInService = async (employee, ipAddress) => {
  * @param {string} ipAddress 
  */
 export const checkOutService = async (employee, ipAddress) => {
-  const { id: employeeId, workShift } = employee;
+  const employeeId = employee.id;
+  const workShift = await ensureWorkShift(employeeId, employee.workShift);
   const now = nowBangkok();
   
   // Determine logical work date (same logic to find today's record)
@@ -142,7 +156,8 @@ export const checkOutService = async (employee, ipAddress) => {
 /**
  * Get employee's attendance status for today
  */
-export const getTodayStatusService = async (employeeId, workShift) => {
+export const getTodayStatusService = async (employeeId, initialWorkShift) => {
+  const workShift = await ensureWorkShift(employeeId, initialWorkShift);
   const now = nowBangkok();
   const workDate = getWorkDate(now.toDate(), workShift.startTime, workShift.isNightShift);
   const dbWorkDate = new Date(workDate.format('YYYY-MM-DD'));

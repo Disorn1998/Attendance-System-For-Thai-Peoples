@@ -51,6 +51,10 @@ export default function LeaveBalancesPage() {
   };
 
   const handleOpenModal = (balance = null) => {
+    if (!selectedEmp) {
+      toast.error('กรุณาเลือกพนักงานก่อนปรับปรุงยอดวันลา');
+      return;
+    }
     if (balance) {
       setFormData({
         leaveType: balance.leaveType,
@@ -65,10 +69,14 @@ export default function LeaveBalancesPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!selectedEmp) {
+      toast.error('กรุณาเลือกพนักงานก่อน');
+      return;
+    }
     try {
       setIsSubmitting(true);
       const payload = {
-        ...formData,
+        leaveType: formData.leaveType,
         year: Number(formData.year),
         totalDays: Number(formData.totalDays),
       };
@@ -89,7 +97,7 @@ export default function LeaveBalancesPage() {
       case 'SICK': return 'ลาป่วย';
       case 'PERSONAL': return 'ลากิจ';
       case 'VACATION': return 'ลาพักร้อน';
-      default: return 'อื่นๆ';
+      default: return type || 'อื่นๆ';
     }
   };
 
@@ -267,7 +275,6 @@ export default function LeaveBalancesPage() {
                   <option value="SICK">ลาป่วย</option>
                   <option value="PERSONAL">ลากิจ</option>
                   <option value="VACATION">ลาพักร้อน</option>
-                  <option value="OTHER">อื่นๆ</option>
                 </select>
               </div>
 

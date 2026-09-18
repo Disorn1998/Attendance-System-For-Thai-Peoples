@@ -75,9 +75,9 @@ export default function EmployeesPage() {
         fullName: emp.fullName,
         email: emp.email,
         password: '',
-        departmentId: emp.departmentId || '',
+        departmentId: emp.departmentId || emp.department?.id || departments[0]?.id || '',
         position: emp.position || '',
-        workShiftId: emp.workShiftId || '',
+        workShiftId: emp.workShiftId || emp.workShift?.id || workShifts[0]?.id || '',
         role: emp.role || 'EMPLOYEE',
         isActive: emp.isActive,
       });

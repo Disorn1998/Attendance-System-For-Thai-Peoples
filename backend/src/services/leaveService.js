@@ -10,15 +10,47 @@ import { getWorkDate } from '../utils/dates.js';
 // ==================== Leave Balances ====================
 
 export const getMyLeaveBalances = async (employeeId, year = new Date().getFullYear()) => {
-  return prisma.leaveBalance.findMany({
+  let balances = await prisma.leaveBalance.findMany({
     where: { employeeId, year },
   });
+
+  if (balances.length === 0) {
+    await prisma.leaveBalance.createMany({
+      data: [
+        { employeeId, leaveType: 'SICK', year, totalDays: 30, usedDays: 0 },
+        { employeeId, leaveType: 'PERSONAL', year, totalDays: 6, usedDays: 0 },
+        { employeeId, leaveType: 'VACATION', year, totalDays: 6, usedDays: 0 },
+      ],
+      skipDuplicates: true,
+    });
+    balances = await prisma.leaveBalance.findMany({
+      where: { employeeId, year },
+    });
+  }
+
+  return balances;
 };
 
 export const getEmployeeLeaveBalances = async (employeeId, year = new Date().getFullYear()) => {
-  return prisma.leaveBalance.findMany({
+  let balances = await prisma.leaveBalance.findMany({
     where: { employeeId, year },
   });
+
+  if (balances.length === 0) {
+    await prisma.leaveBalance.createMany({
+      data: [
+        { employeeId, leaveType: 'SICK', year, totalDays: 30, usedDays: 0 },
+        { employeeId, leaveType: 'PERSONAL', year, totalDays: 6, usedDays: 0 },
+        { employeeId, leaveType: 'VACATION', year, totalDays: 6, usedDays: 0 },
+      ],
+      skipDuplicates: true,
+    });
+    balances = await prisma.leaveBalance.findMany({
+      where: { employeeId, year },
+    });
+  }
+
+  return balances;
 };
 
 export const updateLeaveBalance = async (employeeId, leaveType, year, totalDays, adminId, ipAddress) => {
@@ -84,12 +116,19 @@ export const createLeaveRequest = async (employeeId, data, ipAddress) => {
 
   // 3. Check Balance
   const year = start.getFullYear();
-  const balance = await prisma.leaveBalance.findUnique({
+  let balance = await prisma.leaveBalance.findUnique({
     where: { employeeId_leaveType_year: { employeeId, leaveType, year } },
   });
 
-  if (!balance || (balance.totalDays - balance.usedDays) < requestedDays) {
-    throw new AppError(`ยอดวันลาประเภทนี้คงเหลือไม่เพียงพอ (ต้องการ ${requestedDays} วัน)`, 400);
+  if (!balance) {
+    const defaultDays = leaveType === 'SICK' ? 30 : leaveType === 'VACATION' ? 6 : 6;
+    balance = await prisma.leaveBalance.create({
+      data: { employeeId, leaveType, year, totalDays: defaultDays, usedDays: 0 },
+    });
+  }
+
+  if ((balance.totalDays - balance.usedDays) < requestedDays) {
+    throw new AppError(`ยอดวันลาประเภทนี้คงเหลือไม่เพียงพอ (ต้องการ ${requestedDays} วัน, คงเหลือ ${balance.totalDays - balance.usedDays} วัน)`, 400);
   }
 
   // 4. Check overlapping requests
@@ -145,14 +184,29 @@ export const getAllLeaveRequests = async ({ page, limit, status, departmentId })
     where,
     include: {
       employee: { select: { id: true, fullName: true, employeeCode: true, department: { select: { name: true } } } },
-      approvedBy: { select: { fullName: true } }
     },
     orderBy: { createdAt: 'desc' },
     skip,
     take,
   });
 
-  return { requests, pagination };
+  // Manually attach approvedBy if admin ID is set
+  const adminIds = [...new Set(requests.map((r) => r.approvedById).filter(Boolean))];
+  let adminMap = {};
+  if (adminIds.length > 0) {
+    const admins = await prisma.employee.findMany({
+      where: { id: { in: adminIds } },
+      select: { id: true, fullName: true },
+    });
+    adminMap = Object.fromEntries(admins.map((a) => [a.id, a]));
+  }
+
+  const enhancedRequests = requests.map((r) => ({
+    ...r,
+    approvedBy: r.approvedById && adminMap[r.approvedById] ? { fullName: adminMap[r.approvedById].fullName } : null,
+  }));
+
+  return { requests: enhancedRequests, pagination };
 };
 
 export const processLeaveRequest = async (requestId, { status, rejectReason }, adminId, ipAddress) => {
@@ -187,12 +241,18 @@ export const processLeaveRequest = async (requestId, { status, rejectReason }, a
     if (status === 'APPROVED') {
       const year = request.startDate.getFullYear();
       
-      // 2. Deduct Balance
-      const balance = await tx.leaveBalance.findUnique({
+      let balance = await tx.leaveBalance.findUnique({
         where: { employeeId_leaveType_year: { employeeId: request.employeeId, leaveType: request.leaveType, year } },
       });
 
-      if (!balance || (balance.totalDays - balance.usedDays) < requestedDays) {
+      if (!balance) {
+        const defaultDays = request.leaveType === 'SICK' ? 30 : request.leaveType === 'VACATION' ? 6 : 6;
+        balance = await tx.leaveBalance.create({
+          data: { employeeId: request.employeeId, leaveType: request.leaveType, year, totalDays: defaultDays, usedDays: 0 },
+        });
+      }
+
+      if ((balance.totalDays - balance.usedDays) < requestedDays) {
         throw new AppError('ยอดวันลาคงเหลือไม่เพียงพอขณะอนุมัติ', 400);
       }
 

@@ -19,7 +19,7 @@ export default function HolidaysPage() {
     try {
       setIsLoading(true);
       const data = await adminService.getHolidays(selectedYear);
-      setHolidays(data);
+      setHolidays(Array.isArray(data) ? data : data?.data || []);
     } catch (err) {
       toast.error('ไม่สามารถโหลดข้อมูลวันหยุดได้');
     } finally {
@@ -35,7 +35,11 @@ export default function HolidaysPage() {
     e.preventDefault();
     try {
       setIsSubmitting(true);
-      await adminService.createHoliday(formData);
+      const payload = {
+        date: formData.date,
+        description: formData.description.trim(),
+      };
+      await adminService.createHoliday(payload);
       toast.success('เพิ่มวันหยุดสำเร็จ');
       setIsModalOpen(false);
       setFormData({ date: '', description: '' });

@@ -40,8 +40,9 @@ export const adminService = {
 
   // ==================== Holidays ====================
   getHolidays: async (params) => {
-    const res = await api.get('/admin/holidays', { params });
-    return res.data; // contains data and pagination
+    const query = typeof params === 'number' ? { year: params, limit: 100 } : (params || { limit: 100 });
+    const res = await api.get('/admin/holidays', { params: query });
+    return res.data.data; // contains array of holidays
   },
   createHoliday: async (data) => {
     const res = await api.post('/admin/holidays', data);

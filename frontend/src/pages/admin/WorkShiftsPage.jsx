@@ -60,6 +60,7 @@ export default function WorkShiftsPage() {
       setIsSubmitting(true);
       const payload = {
         ...formData,
+        name: formData.name.trim(),
         lateAfterMinutes: Number(formData.lateAfterMinutes),
       };
 
