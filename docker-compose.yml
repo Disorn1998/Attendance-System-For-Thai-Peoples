@@ -1,0 +1,57 @@
+services:
+  # ==================== PostgreSQL Database ====================
+  postgres:
+    image: postgres:15-alpine
+    container_name: attendance_postgres_dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: attendance_user
+      POSTGRES_PASSWORD: attendance_pass
+      POSTGRES_DB: attendance_db
+      TZ: Asia/Bangkok
+      PGTZ: Asia/Bangkok
+    ports:
+      - "5444:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U attendance_user -d attendance_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ==================== Backend API ====================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development  # Use development stage for hot reload
+    container_name: attendance_backend_dev
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://attendance_user:attendance_pass@postgres:5432/attendance_db
+      JWT_ACCESS_SECRET: dev-access-secret-please-change-in-production-min32
+      JWT_REFRESH_SECRET: dev-refresh-secret-please-change-in-production-min32
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      PORT: 3000
+      NODE_ENV: development
+      TZ: Asia/Bangkok
+      CORS_ORIGIN: http://localhost:5173
+      LOG_LEVEL: debug
+      BCRYPT_ROUNDS: 10  # Lower rounds for faster dev/test
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend/src:/app/src  # Mount source for hot reload
+      - ./backend/prisma:/app/prisma
+
+# ==================== Named Volumes ====================
+volumes:
+  pgdata:
+    driver: local
+    # Data persists across container restarts — do NOT delete unless resetting DB

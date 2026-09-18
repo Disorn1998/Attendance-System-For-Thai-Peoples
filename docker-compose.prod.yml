@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: attendance_db_prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-attendance_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-attendance_secret_pass}
+      POSTGRES_DB: attendance_db
+      TZ: Asia/Bangkok
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    networks:
+      - attendance_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-attendance_user} -d attendance_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: attendance_backend_prod
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://${DB_USER:-attendance_user}:${DB_PASSWORD:-attendance_secret_pass}@postgres:5432/attendance_db?schema=public
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_ACCESS_EXPIRES_IN=15m
+      - JWT_REFRESH_EXPIRES_IN=7d
+      - CORS_ORIGIN=https://yourdomain.com
+      - TZ=Asia/Bangkok
+      - LOG_LEVEL=info
+    networks:
+      - attendance_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: attendance_frontend_prod
+    restart: always
+    networks:
+      - attendance_net
+
+  nginx:
+    image: nginx:alpine
+    container_name: attendance_nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - attendance_net
+
+  certbot:
+    image: certbot/certbot
+    container_name: attendance_certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - attendance_net
+
+volumes:
+  pgdata_prod:
+
+networks:
+  attendance_net:
+    driver: bridge

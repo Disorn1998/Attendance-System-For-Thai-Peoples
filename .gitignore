@@ -1,0 +1,51 @@
+# ==================== Root .gitignore ====================
+
+# ---- Dependencies ----
+node_modules/
+**/node_modules/
+
+# ---- Environment variables (NEVER commit these) ----
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+
+# ---- Build outputs ----
+dist/
+build/
+.next/
+*.tsbuildinfo
+
+# ---- Database ----
+pgdata/
+*.sql.gz
+backups/
+
+# ---- Logs ----
+*.log
+logs/
+npm-debug.log*
+
+# ---- Coverage reports ----
+coverage/
+.nyc_output/
+
+# ---- OS files ----
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ---- IDE files ----
+.vscode/settings.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ---- Prisma ----
+# Keep schema.prisma but ignore generated client (generated during build)
+backend/node_modules/.prisma/
+
+# ---- Docker volumes ----
+docker-volumes/

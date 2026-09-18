@@ -1,0 +1,174 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== Enums ====================
+
+enum Role {
+  EMPLOYEE
+  ADMIN
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ON_LEAVE
+  HALF_DAY_LEAVE
+  ABSENT
+}
+
+enum LeaveType {
+  SICK      // ลาป่วย
+  PERSONAL  // ลากิจ
+  VACATION  // ลาพักร้อน
+}
+
+enum LeaveStatus {
+  PENDING   // รอการอนุมัติ
+  APPROVED  // อนุมัติแล้ว
+  REJECTED  // ปฏิเสธแล้ว
+}
+
+// ==================== Models ====================
+
+model Department {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  employees Employee[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model WorkShift {
+  id               Int        @id @default(autoincrement())
+  name             String     // e.g. "กะเช้า", "กะดึก"
+  startTime        String     // "09:00" — 24-hour format, Asia/Bangkok
+  endTime          String     // "18:00"
+  lateAfterMinutes Int        @default(15)
+  isNightShift     Boolean    @default(false) // true = endTime is next calendar day
+  employees        Employee[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+}
+
+model Employee {
+  id             Int            @id @default(autoincrement())
+  employeeCode   String         @unique
+  fullName       String
+  email          String         @unique
+  passwordHash   String
+  role           Role           @default(EMPLOYEE)
+  departmentId   Int
+  department     Department     @relation(fields: [departmentId], references: [id])
+  workShiftId    Int
+  workShift      WorkShift      @relation(fields: [workShiftId], references: [id])
+  position       String
+  isActive       Boolean        @default(true)
+  deletedAt      DateTime?      // Soft delete — null means active (PDPA compliance)
+  attendances    Attendance[]
+  leaveRequests  LeaveRequest[]
+  leaveBalances  LeaveBalance[]
+  auditLogs      AuditLog[]     @relation("AuditLogUser")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([departmentId])
+  @@index([workShiftId])
+  @@index([isActive])
+}
+
+model Attendance {
+  id           Int              @id @default(autoincrement())
+  employeeId   Int
+  employee     Employee         @relation(fields: [employeeId], references: [id])
+  date         DateTime         @db.Date        // Work date (Bangkok TZ) — for night shift: shift start date
+  checkInTime  DateTime?                        // Stored as UTC
+  checkOutTime DateTime?                        // Stored as UTC
+  checkInIp    String?
+  checkOutIp   String?
+  status       AttendanceStatus @default(PRESENT)
+  workingHours Float?                           // Hours worked (checkOut - checkIn), 2 decimal places
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([employeeId, date])
+  @@index([date])
+  @@index([status])
+  @@index([employeeId, date])
+}
+
+model LeaveRequest {
+  id             Int         @id @default(autoincrement())
+  employeeId     Int
+  employee       Employee    @relation(fields: [employeeId], references: [id])
+  leaveType      LeaveType
+  startDate      DateTime    @db.Date
+  endDate        DateTime    @db.Date
+  isHalfDay      Boolean     @default(false)  // true = half-day leave (0.5 days deducted)
+  reason         String
+  status         LeaveStatus @default(PENDING)
+  approvedById   Int?        // Admin employee ID who approved/rejected
+  approvedAt     DateTime?
+  rejectedReason String?     // Reason for rejection (optional)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([startDate, endDate])
+}
+
+model LeaveBalance {
+  id         Int       @id @default(autoincrement())
+  employeeId Int
+  employee   Employee  @relation(fields: [employeeId], references: [id])
+  leaveType  LeaveType
+  year       Int       // Calendar year (e.g. 2025)
+  totalDays  Float     // Annual quota (supports half-days)
+  usedDays   Float     @default(0) // Days used so far
+  // remainingDays = totalDays - usedDays (computed in application layer)
+
+  @@unique([employeeId, leaveType, year])
+  @@index([employeeId, year])
+}
+
+model Holiday {
+  id          Int      @id @default(autoincrement())
+  date        DateTime @db.Date @unique
+  description String
+  createdAt   DateTime @default(now())
+
+  @@index([date])
+}
+
+model CompanyWifiWhitelist {
+  id          Int      @id @default(autoincrement())
+  ipAddress   String   @unique
+  description String
+  createdAt   DateTime @default(now())
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      Employee @relation("AuditLogUser", fields: [userId], references: [id])
+  action    String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT, CHECK_IN, CHECK_OUT, APPROVE_LEAVE, REJECT_LEAVE
+  entity    String   // Employee, Attendance, LeaveRequest, Department, WorkShift, Holiday, WiFi
+  entityId  Int?
+  details   Json?    // { before: {...}, after: {...} } — old and new values
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@index([action])
+}

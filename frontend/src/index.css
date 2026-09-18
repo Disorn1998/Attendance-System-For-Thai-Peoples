@@ -1,0 +1,135 @@
+/* src/index.css */
+/* Modern, friendly enterprise design system with micro-interactions and comfortable sizing */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==================== Base Typography & Density ==================== */
+@layer base {
+  html {
+    font-family: 'Sarabun', 'IBM Plex Sans Thai', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-size: 15.5px; /* Comfortable, friendly modern reading density */
+    line-height: 1.55;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased selection:bg-primary-100 selection:text-primary-800;
+  }
+
+  /* Accessible focus ring */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary-500/50 ring-offset-2;
+  }
+}
+
+/* ==================== Interactive Components ==================== */
+@layer components {
+  /* Modern Cards with subtle lift */
+  .ui-card {
+    @apply bg-white rounded-2xl border border-slate-200/90 shadow-xs transition-all duration-200;
+  }
+  
+  .ui-card-interactive {
+    @apply ui-card hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5 cursor-pointer;
+  }
+
+  /* Form Elements - Comfortable 44px (h-11) height */
+  .ui-input {
+    @apply h-11 px-4 text-[14.5px] bg-white border border-slate-300 rounded-xl text-slate-800 placeholder-slate-400
+      focus:border-primary-500 focus:ring-4 focus:ring-primary-500/15 outline-none transition-all duration-200
+      disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed shadow-2xs;
+  }
+
+  .ui-select {
+    @apply ui-input pr-10 bg-no-repeat cursor-pointer;
+  }
+
+  /* Buttons with comfortable 44px (h-11) height, soft gradients, and click bounce */
+  .ui-btn-primary {
+    @apply inline-flex items-center justify-center gap-2.5 h-11 px-5 text-[14.5px] font-semibold text-white
+      bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600
+      active:scale-95 rounded-xl shadow-xs hover:shadow-md hover:shadow-primary-500/25
+      transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none;
+  }
+
+  .ui-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2.5 h-11 px-5 text-[14.5px] font-medium text-slate-700
+      bg-white hover:bg-slate-50 active:bg-slate-100 active:scale-95 border border-slate-300/90
+      rounded-xl shadow-2xs hover:shadow-xs hover:border-slate-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .ui-btn-danger {
+    @apply inline-flex items-center justify-center gap-2.5 h-11 px-5 text-[14.5px] font-semibold text-white
+      bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500
+      active:scale-95 rounded-xl shadow-xs hover:shadow-md hover:shadow-red-500/25
+      transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .ui-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 h-9 px-3.5 text-xs font-medium text-slate-600
+      hover:text-slate-900 hover:bg-slate-100 active:scale-95 rounded-xl transition-all duration-150;
+  }
+
+  /* Friendly Status Badges with soft contrast */
+  .ui-badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide shadow-2xs transition-transform duration-150;
+  }
+
+  /* Tables with comfortable, readable padding */
+  .ui-table {
+    @apply w-full text-left border-collapse text-[14px];
+  }
+
+  .ui-table th {
+    @apply py-3.5 px-4.5 text-xs font-bold uppercase tracking-wider text-slate-500 bg-slate-50/90 border-b border-slate-200 select-none;
+  }
+
+  .ui-table td {
+    @apply py-3.5 px-4.5 border-b border-slate-100 text-slate-700 align-middle transition-colors;
+  }
+
+  .ui-table tr:last-child td {
+    @apply border-b-0;
+  }
+
+  .ui-table tbody tr:hover td {
+    @apply bg-primary-50/40;
+  }
+
+  /* Custom subtle scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.slate.300') transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-slate-300/80 hover:bg-slate-400 rounded-full transition-colors;
+  }
+}
+
+/* ==================== Keyframe Animations ==================== */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(37, 99, 235, 0);
+  }
+}
+
+.pulse-glow {
+  animation: pulseGlow 2.5s infinite;
+}
