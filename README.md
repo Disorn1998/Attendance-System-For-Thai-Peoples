@@ -493,10 +493,17 @@ npm run build
 
 ## 📄 สัญญาอนุญาต (License)
 
-โปรเจกต์นี้เผยแพร่ภายใต้สัญญาอนุญาต **[MIT License](LICENSE)**  
-สามารถนำไปพัฒนาต่อยอด ใช้งานภายในองค์กร หรือใช้งานในเชิงพาณิชย์ได้อย่างเสรี
+โปรเจกต์นี้เผยแพร่ภายใต้สัญญาอนุญาต **[MIT License](LICENSE)**
+
+```text
+MIT License
+Copyright (c) 2026 Disorn Suppartum (Disorn1998)
+```
+
+คุณสามารถนำซอร์สโค้ดนี้ไปศึกษา ปรับแต่ง พัฒนาต่อยอด ใช้งานภายในองค์กร หรือนำไปประยุกต์ใช้ในเชิงพาณิชย์ (Commercial Use) ได้อย่างอิสระ 100% โดยไม่มีค่าใช้จ่าย
 
 ---
 
 **Developed with ❤️ for Modern Workforce Management**  
-*หากพบปัญหาหรือมีข้อเสนอแนะ สามารถเปิด Issue หรือส่ง Pull Request เข้ามาได้เลยครับ!*
+*หากพบปัญหาการใช้งานหรือมีข้อเสนอแนะ สามารถเปิด [GitHub Issue](https://github.com/Disorn1998/Attendance-System-For-Thai-Peoples/issues) หรือส่ง Pull Request เข้ามาได้เลยครับ!*
+
