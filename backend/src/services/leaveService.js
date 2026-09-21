@@ -100,7 +100,7 @@ export const createLeaveRequest = async (employeeId, data, ipAddress) => {
     throw new AppError('วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่มต้น', 400);
   }
 
-  // 2. Calculate requested days
+  // 2. Calculate requested working days (excluding weekends and public holidays)
   let requestedDays = 0;
   if (isHalfDay) {
     if (start.getTime() !== end.getTime()) {
@@ -108,10 +108,25 @@ export const createLeaveRequest = async (employeeId, data, ipAddress) => {
     }
     requestedDays = 0.5;
   } else {
-    // Simple calc (excluding weekends/holidays should ideally be done here, 
-    // but for simplicity we calculate calendar days)
-    const diffTime = Math.abs(end - start);
-    requestedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    const holidays = await prisma.holiday.findMany({
+      where: { date: { gte: start, lte: end } },
+      select: { date: true },
+    });
+    const holidayDateSet = new Set(holidays.map((h) => h.date.toISOString().slice(0, 10)));
+
+    let current = new Date(start);
+    while (current <= end) {
+      const dayOfWeek = current.getDay();
+      const dateStr = current.toISOString().slice(0, 10);
+      if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidayDateSet.has(dateStr)) {
+        requestedDays += 1;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+  }
+
+  if (requestedDays === 0) {
+    throw new AppError('ช่วงเวลาที่เลือกเป็นวันหยุด ไม่จำเป็นต้องยื่นใบลา', 400);
   }
 
   // 3. Check Balance
@@ -226,8 +241,21 @@ export const processLeaveRequest = async (requestId, { status, rejectReason }, a
   if (request.isHalfDay) {
     requestedDays = 0.5;
   } else {
-    const diffTime = Math.abs(request.endDate - request.startDate);
-    requestedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    const holidays = await prisma.holiday.findMany({
+      where: { date: { gte: request.startDate, lte: request.endDate } },
+      select: { date: true },
+    });
+    const holidayDateSet = new Set(holidays.map((h) => h.date.toISOString().slice(0, 10)));
+
+    let current = new Date(request.startDate);
+    while (current <= request.endDate) {
+      const dayOfWeek = current.getDay();
+      const dateStr = current.toISOString().slice(0, 10);
+      if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidayDateSet.has(dateStr)) {
+        requestedDays += 1;
+      }
+      current.setDate(current.getDate() + 1);
+    }
   }
 
   // Using transaction to ensure atomic update of request, balance, and attendance
@@ -235,7 +263,12 @@ export const processLeaveRequest = async (requestId, { status, rejectReason }, a
     // 1. Update request status
     const req = await tx.leaveRequest.update({
       where: { id: requestId },
-      data: { status, rejectReason, approvedById: adminId },
+      data: {
+        status,
+        rejectedReason: rejectReason || null,
+        approvedById: adminId,
+        approvedAt: new Date(),
+      },
     });
 
     if (status === 'APPROVED') {
@@ -261,13 +294,19 @@ export const processLeaveRequest = async (requestId, { status, rejectReason }, a
         data: { usedDays: { increment: requestedDays } },
       });
 
-      // 3. Create Attendance ON_LEAVE records for each day in range
+      // 3. Create Attendance ON_LEAVE records for each weekday in range (excluding holidays)
+      const holidays = await tx.holiday.findMany({
+        where: { date: { gte: request.startDate, lte: request.endDate } },
+        select: { date: true },
+      });
+      const holidayDateSet = new Set(holidays.map((h) => h.date.toISOString().slice(0, 10)));
+
       const days = [];
       let current = new Date(request.startDate);
       while (current <= request.endDate) {
-        // Only mark if it's a weekday (in real app, skip holidays too)
         const dayOfWeek = current.getDay();
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        const dateStr = current.toISOString().slice(0, 10);
+        if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidayDateSet.has(dateStr)) {
           days.push(new Date(current));
         }
         current.setDate(current.getDate() + 1);

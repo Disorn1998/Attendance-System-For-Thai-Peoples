@@ -2,6 +2,7 @@
 
 import * as attendanceService from '../services/attendanceService.js';
 import { sendSuccess } from '../utils/response.js';
+import { getClientIp } from '../utils/ip.js';
 
 export const checkIn = async (req, res, next) => {
   try {
@@ -23,7 +24,8 @@ export const checkOut = async (req, res, next) => {
 
 export const getTodayStatus = async (req, res, next) => {
   try {
-    const data = await attendanceService.getTodayStatusService(req.user.id, req.user.workShift);
+    const clientIp = getClientIp(req);
+    const data = await attendanceService.getTodayStatusService(req.user.id, req.user.workShift, clientIp);
     sendSuccess(res, data);
   } catch (err) {
     next(err);

@@ -180,14 +180,23 @@ export default function DashboardPage() {
         </div>
 
         {/* Security / WiFi confirmation strip */}
-        <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs sm:text-sm text-slate-500">
-          <span className="flex items-center gap-2 font-medium text-slate-600">
-            <svg className="w-4.5 h-4.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-            ตรวจจับเครือข่ายบริษัท (IP Whitelist) สมบูรณ์
-          </span>
-          <span className="font-mono text-xs text-slate-400 font-semibold">Bangkok (GMT+7)</span>
+        <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
+          {status?.isWifiAllowed ? (
+            <span className="flex items-center gap-2 font-medium text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+              <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <span>เชื่อมต่อเครือข่ายบริษัทแล้ว {status?.clientIp ? `(IP: ${status.clientIp})` : ''}</span>
+            </span>
+          ) : (
+            <span className="flex items-center gap-2 font-medium text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+              <svg className="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>อยู่นอกเครือข่ายบริษัท {status?.clientIp ? `(IP: ${status.clientIp})` : ''} — ไม่สามารถเช็คอินได้</span>
+            </span>
+          )}
+          <span className="font-mono text-xs text-slate-400 font-semibold">Asia/Bangkok (GMT+7)</span>
         </div>
       </div>
 

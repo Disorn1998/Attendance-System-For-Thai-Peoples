@@ -33,7 +33,7 @@ export const checkInService = async (employee, ipAddress) => {
   
   // Format for DB query (Date only, UTC midnight)
   // Our dates.js formats it safely, but Prisma @db.Date expects a standard JS Date object.
-  const dbWorkDate = new Date(workDate.format('YYYY-MM-DD'));
+  const dbWorkDate = new Date(workDate);
 
   // 1. Check if already checked in today
   const existingRecord = await prisma.attendance.findFirst({
@@ -111,7 +111,7 @@ export const checkOutService = async (employee, ipAddress) => {
   
   // Determine logical work date (same logic to find today's record)
   const workDate = getWorkDate(now, workShift);
-  const dbWorkDate = new Date(workDate.format('YYYY-MM-DD'));
+  const dbWorkDate = new Date(workDate);
 
   // 1. Find today's check-in
   const attendance = await prisma.attendance.findFirst({
@@ -156,11 +156,11 @@ export const checkOutService = async (employee, ipAddress) => {
 /**
  * Get employee's attendance status for today
  */
-export const getTodayStatusService = async (employeeId, initialWorkShift) => {
+export const getTodayStatusService = async (employeeId, initialWorkShift, clientIp = null) => {
   const workShift = await ensureWorkShift(employeeId, initialWorkShift);
   const now = nowBangkok();
   const workDate = getWorkDate(now, workShift);
-  const dbWorkDate = new Date(workDate.format('YYYY-MM-DD'));
+  const dbWorkDate = new Date(workDate);
 
   const attendance = await prisma.attendance.findFirst({
     where: {
@@ -169,11 +169,26 @@ export const getTodayStatusService = async (employeeId, initialWorkShift) => {
     },
   });
 
+  let isWifiAllowed = false;
+  let wifiDescription = null;
+  if (clientIp) {
+    const wifiEntry = await prisma.companyWifiWhitelist.findFirst({
+      where: { ipAddress: clientIp },
+    });
+    if (wifiEntry) {
+      isWifiAllowed = true;
+      wifiDescription = wifiEntry.description;
+    }
+  }
+
   return {
     workDate: dbWorkDate,
     hasCheckedIn: !!attendance,
     hasCheckedOut: !!attendance?.checkOutTime,
     attendance,
+    clientIp,
+    isWifiAllowed,
+    wifiDescription,
   };
 };
 
