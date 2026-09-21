@@ -29,7 +29,7 @@ export const checkInService = async (employee, ipAddress) => {
   
   const now = nowBangkok();
   // Determine logical work date (handles cross-midnight night shift)
-  const workDate = getWorkDate(now.toDate(), workShift.startTime, workShift.isNightShift);
+  const workDate = getWorkDate(now, workShift);
   
   // Format for DB query (Date only, UTC midnight)
   // Our dates.js formats it safely, but Prisma @db.Date expects a standard JS Date object.
@@ -110,7 +110,7 @@ export const checkOutService = async (employee, ipAddress) => {
   const now = nowBangkok();
   
   // Determine logical work date (same logic to find today's record)
-  const workDate = getWorkDate(now.toDate(), workShift.startTime, workShift.isNightShift);
+  const workDate = getWorkDate(now, workShift);
   const dbWorkDate = new Date(workDate.format('YYYY-MM-DD'));
 
   // 1. Find today's check-in
@@ -159,7 +159,7 @@ export const checkOutService = async (employee, ipAddress) => {
 export const getTodayStatusService = async (employeeId, initialWorkShift) => {
   const workShift = await ensureWorkShift(employeeId, initialWorkShift);
   const now = nowBangkok();
-  const workDate = getWorkDate(now.toDate(), workShift.startTime, workShift.isNightShift);
+  const workDate = getWorkDate(now, workShift);
   const dbWorkDate = new Date(workDate.format('YYYY-MM-DD'));
 
   const attendance = await prisma.attendance.findFirst({
