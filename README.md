@@ -298,8 +298,8 @@ attendance-system/
 
 ### 1. โคลน Repository
 ```bash
-git clone https://github.com/your-username/attendance-system.git
-cd attendance-system
+git clone https://github.com/Disorn1998/Attendance-System-For-Thai-Peoples.git
+cd Attendance-System-For-Thai-Peoples
 ```
 
 ---
@@ -463,8 +463,8 @@ npm run build
    ```
 2. **โคลนโปรเจกต์และกำหนดค่า `.env` สำหรับ Production:**
    ```bash
-   git clone https://github.com/your-username/attendance-system.git
-   cd attendance-system
+   git clone https://github.com/Disorn1998/Attendance-System-For-Thai-Peoples.git
+   cd Attendance-System-For-Thai-Peoples
    cp backend/.env.example backend/.env
    cp frontend/.env.example frontend/.env
    ```
