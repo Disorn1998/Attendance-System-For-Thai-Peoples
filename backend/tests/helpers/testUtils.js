@@ -5,15 +5,18 @@ import { prisma } from '../../src/config/database.js';
 import { hashPassword } from '../../src/utils/password.js';
 import { generateAccessToken, generateRefreshToken } from '../../src/utils/token.js';
 
-export const createTestDepartment = async (name = 'QA Testing Dept') => {
-  return prisma.department.upsert({
-    where: { name },
-    update: {},
-    create: { name },
-  });
+// Generate a short unique ID per call — avoids any shared-suffix collision
+const uid = () => `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+export const createTestDepartment = async (baseName = 'QA Testing Dept') => {
+  // Unique name per call to avoid unique constraint errors
+  const name = `${baseName}_${uid()}`;
+  return prisma.department.create({ data: { name } });
 };
 
-export const createTestWorkShift = async (name = 'QA Work Shift', overrides = {}) => {
+export const createTestWorkShift = async (baseName = 'QA Work Shift', overrides = {}) => {
+  // Unique name per call
+  const name = `${baseName}_${uid()}`;
   return prisma.workShift.create({
     data: {
       name,
@@ -27,9 +30,9 @@ export const createTestWorkShift = async (name = 'QA Work Shift', overrides = {}
 };
 
 export const createTestEmployee = async ({
-  employeeCode = 'EMP_TEST_001',
+  employeeCode,
   fullName = 'Test Employee',
-  email = 'emp_test_001@example.com',
+  email,
   password = 'Pass@1234',
   role = 'EMPLOYEE',
   departmentId,
@@ -37,6 +40,11 @@ export const createTestEmployee = async ({
   position = 'Tester',
   isActive = true,
 } = {}) => {
+  // Generate unique code/email per invocation to prevent unique constraint errors
+  const uniqueSuffix = uid();
+  const resolvedCode = employeeCode ?? `TEST_${uniqueSuffix}`;
+  const resolvedEmail = email ?? `test_${uniqueSuffix}@example.com`;
+
   let deptId = departmentId;
   if (!deptId) {
     const dept = await createTestDepartment();
@@ -53,9 +61,9 @@ export const createTestEmployee = async ({
 
   const emp = await prisma.employee.create({
     data: {
-      employeeCode,
+      employeeCode: resolvedCode,
       fullName,
-      email,
+      email: resolvedEmail,
       passwordHash,
       role,
       departmentId: deptId,
@@ -82,12 +90,13 @@ export const createTestEmployee = async ({
 
 export const cleanupTestData = async () => {
   try {
+    // Clean in dependency order: child tables first
     await prisma.auditLog.deleteMany({
       where: {
         OR: [
           { user: { email: { contains: 'test', mode: 'insensitive' } } },
-          { user: { employeeCode: { contains: 'TEST' } } },
-          { user: { department: { name: { contains: 'QA' } } } },
+          { user: { employeeCode: { startsWith: 'TEST_' } } },
+          { user: { department: { name: { startsWith: 'QA ' } } } },
         ],
       },
     });
@@ -96,8 +105,8 @@ export const cleanupTestData = async () => {
       where: {
         OR: [
           { employee: { email: { contains: 'test', mode: 'insensitive' } } },
-          { employee: { employeeCode: { contains: 'TEST' } } },
-          { employee: { department: { name: { contains: 'QA' } } } },
+          { employee: { employeeCode: { startsWith: 'TEST_' } } },
+          { employee: { department: { name: { startsWith: 'QA ' } } } },
         ],
       },
     });
@@ -106,8 +115,8 @@ export const cleanupTestData = async () => {
       where: {
         OR: [
           { employee: { email: { contains: 'test', mode: 'insensitive' } } },
-          { employee: { employeeCode: { contains: 'TEST' } } },
-          { employee: { department: { name: { contains: 'QA' } } } },
+          { employee: { employeeCode: { startsWith: 'TEST_' } } },
+          { employee: { department: { name: { startsWith: 'QA ' } } } },
         ],
       },
     });
@@ -116,8 +125,8 @@ export const cleanupTestData = async () => {
       where: {
         OR: [
           { employee: { email: { contains: 'test', mode: 'insensitive' } } },
-          { employee: { employeeCode: { contains: 'TEST' } } },
-          { employee: { department: { name: { contains: 'QA' } } } },
+          { employee: { employeeCode: { startsWith: 'TEST_' } } },
+          { employee: { department: { name: { startsWith: 'QA ' } } } },
         ],
       },
     });
@@ -126,18 +135,18 @@ export const cleanupTestData = async () => {
       where: {
         OR: [
           { email: { contains: 'test', mode: 'insensitive' } },
-          { employeeCode: { contains: 'TEST' } },
-          { department: { name: { contains: 'QA' } } },
+          { employeeCode: { startsWith: 'TEST_' } },
+          { department: { name: { startsWith: 'QA ' } } },
         ],
       },
     });
 
     await prisma.workShift.deleteMany({
-      where: { name: { contains: 'QA' } },
+      where: { name: { startsWith: 'QA ' } },
     });
 
     await prisma.department.deleteMany({
-      where: { name: { contains: 'QA' } },
+      where: { name: { startsWith: 'QA ' } },
     });
 
     await prisma.holiday.deleteMany({
